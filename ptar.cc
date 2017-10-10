@@ -812,7 +812,8 @@ int extract(size_t lineno) {
 }
 
 int add_requested_path(const char *file_path) {
-	if (num_requested_files == requested_files_cap && (requested_files = realloc(requested_files, (requested_files_cap += REQUESTED_FILES_GROWTH) * sizeof (*requested_files))) == NULL) {
+	if (num_requested_files == requested_files_cap && (requested_files 
+      = reinterpret_cast<requested_file_t *>(realloc(requested_files, (requested_files_cap += REQUESTED_FILES_GROWTH) * sizeof (*requested_files)))) == NULL) {
 		(void) fprintf(stderr, "out of memory\n");
 		exit(EXIT_FAILURE);
 	}
@@ -849,18 +850,18 @@ int process_stdin_lines(int (*process_line)(const char *)) {
 
 void help(void) {
 	(void) fprintf(stdout,
-"Usage: ptar [-h] [OPTION ...] c|x|t [PATH ...]\n\n"
+"Usage: ptar [-h] [OPTION ...] -(c|x|t) [PATH ...]\n\n"
 
 "     Manipulate plain text archives that are similar to traditional tar(1)\n"
 "     files but are more human-readable.\n\n"
 
 "Commands:\n\n"
 
-"     c         Create a new archive and print its contents on standard\n"
+"    -c         Create a new archive and print its contents on standard\n"
 "               output.  The files whose PATHs are listed on the command\n"
 "               line will be added to the archive.\n\n"
 
-"     x         Extract the contents of the archive from standard input\n"
+"    -x         Extract the contents of the archive from standard input\n"
 "               and write the contents to the file system relative to\n"
 "               the current working directory.  The files whose PATHs are\n"
 "               listed on the command line will be extracted from the\n"
@@ -870,7 +871,7 @@ void help(void) {
 "               patterns will match archived paths the same way these\n"
 "               patterns match paths in interactive shells.\n\n"
 
-"     t         List the PATHs stored in the archive from standard input.\n"
+"    -t         List the PATHs stored in the archive from standard input.\n"
 "               This also checks whether the archive conforms to the plain\n"
 "               text archive standard (including recognized extensions) and\n"
 "               can be extracted via 'x' without parse errors.  This does\n"
@@ -915,10 +916,9 @@ void help(void) {
 int main(int argc, char **argv) {
 	int error, n;
 	char noarchivemetadata, pathsfromstdin;
-	time_t now;
-	struct tm *nowtm;
 	struct stat sb;
 	size_t index;
+	time_t now = time(NULL);
 
 	pathsfromstdin = noarchivemetadata = 0;
 	for (n = 1; n < argc; n++) {
@@ -948,15 +948,16 @@ int main(int argc, char **argv) {
 		} else if (n == argc) {
 			(void) fprintf(stderr, "error: no command given (specify -h for help)\n");
 			exit(EXIT_FAILURE);
-		} else if (strlen(argv[n]) != 1) {
-			(void) fprintf(stderr, "error: command must be exactly one of 'c', 'x', or 't'\n");
+		} else if (strlen(argv[n]) > 2) {
+			(void) fprintf(stderr, "error: command must be exactly one of '-c', '-x', or '-t'\n");
 			exit(EXIT_FAILURE);
 		} else {
 			break;
 		}
 	}
 	error = 0;
-	switch (argv[n][0]) {
+	unsigned char flag = ('-'==argv[n][0]) ?  argv[n][1] : argv[n][0];
+	switch (flag) {
 	case 'c':
 		if (fstat(1, &sb) != 0) {
 			(void) fprintf(stderr, "error: couldn't stat standard output: %s\n", strerror(errno));
@@ -965,6 +966,7 @@ int main(int argc, char **argv) {
 		stdoutdev = sb.st_dev;
 		stdoutino = sb.st_ino;
 		now = time(NULL);
+		struct tm *nowtm;
 		if ((nowtm = localtime(&now)) == NULL) {
 			(void) fprintf(stderr, "error: couldn't convert Epoch timestamp to broken-down time representation\n");
 			exit(EXIT_FAILURE);

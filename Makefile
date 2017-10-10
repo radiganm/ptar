@@ -57,11 +57,11 @@ options:
 	@echo "CC      = $(CC)"
 	@echo
 
-.c.o:
-	$(CC) -c $(CPPFLAGS) $(CFLAGS) $<
+.cc.o:
+	$(CXX) -c $(CPPFLAGS) $(CFLAGS) $<
 
 $(BINFILE): $(OBJ)
-	$(CC) -o $@ $(OBJ) $(LDFLAGS)
+	$(CXX) -o $@ $(OBJ) $(LDFLAGS)
 
 clean:
 	rm -f $(BINFILE) $(OBJ) $(DISTARCHIVE)
